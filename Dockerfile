@@ -29,9 +29,5 @@ COPY main.py .
 # Expose port (Railway will set PORT env variable)
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
-
-# Run the application
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run the application - Python script handles PORT env variable
+CMD ["python", "main.py"]
