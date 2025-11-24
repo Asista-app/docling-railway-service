@@ -1,5 +1,5 @@
 {
-  "name": "Docling Chunk to PGVector Workflow",
+  "name": "Docling: URL → Chunk → PGVector",
   "nodes": [
     {
       "parameters": {},
@@ -7,22 +7,25 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        240,
-        300
-      ]
+      "position": [240, 300]
     },
     {
       "parameters": {
         "values": {
           "string": [
             {
-              "name": "documentUrl",
+              "name": "url",
               "value": "https://arxiv.org/pdf/2408.09869"
             },
             {
+              "name": "file_id",
+              "value": "1GUbsAxJB2CmEInyrp7_WJrZDjgisWaR9"
+            }
+          ],
+          "number": [
+            {
               "name": "max_tokens",
-              "value": "512"
+              "value": 512
             }
           ],
           "boolean": [
@@ -31,17 +34,14 @@
               "value": true
             }
           ]
-        },
-        "options": {}
+        }
       },
-      "id": "set-document",
-      "name": "Set Document URL",
+      "id": "set-params",
+      "name": "Set Parameters",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.3,
-      "position": [
-        460,
-        300
-      ]
+      "position": [460, 300],
+      "notes": "Set your document URL, file_id, and chunking parameters"
     },
     {
       "parameters": {
@@ -58,7 +58,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"url\": \"{{ $json.documentUrl }}\",\n  \"max_tokens\": {{ $json.max_tokens }},\n  \"merge_peers\": {{ $json.merge_peers }}\n}",
+        "jsonBody": "={\n  \"url\": {{ JSON.stringify($json.url) }},\n  \"max_tokens\": {{ $json.max_tokens }},\n  \"merge_peers\": {{ $json.merge_peers }},\n  \"file_id\": {{ JSON.stringify($json.file_id) }}\n}",
         "options": {
           "timeout": 180000
         }
@@ -67,45 +67,8 @@
       "name": "Chunk Document",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        680,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "chunks",
-              "name": "chunks",
-              "value": "={{ $json.chunks }}",
-              "type": "array"
-            },
-            {
-              "id": "total",
-              "name": "total_chunks",
-              "value": "={{ $json.total_chunks }}",
-              "type": "number"
-            },
-            {
-              "id": "tokens",
-              "name": "total_tokens",
-              "value": "={{ $json.total_tokens }}",
-              "type": "number"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "extract-chunks",
-      "name": "Extract Chunks",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.3,
-      "position": [
-        900,
-        300
-      ]
+      "position": [680, 300],
+      "notes": "Converts and chunks document in one step using Docling HybridChunker"
     },
     {
       "parameters": {
@@ -116,10 +79,7 @@
       "name": "Split Into Items",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [
-        1120,
-        300
-      ],
+      "position": [900, 300],
       "notes": "Split chunks array into individual items for PGVector insertion"
     },
     {
@@ -128,14 +88,12 @@
         "schema": {
           "__rl": true,
           "value": "public",
-          "mode": "list",
-          "cachedResultName": "public"
+          "mode": "list"
         },
         "table": {
           "__rl": true,
           "value": "documents_pg",
-          "mode": "list",
-          "cachedResultName": "documents_pg"
+          "mode": "list"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -144,21 +102,16 @@
             "chunk": "={{ $json.chunk }}",
             "chunk_size": "={{ $json.chunk_size }}",
             "tokens": "={{ $json.tokens }}",
-            "metadata": "={{ JSON.stringify($json.metadata) }}"
-          },
-          "matchingColumns": [],
-          "schema": []
+            "file_id": "={{ $json.metadata.file_id }}"
+          }
         },
         "options": {}
       },
-      "id": "pgvector-insert",
+      "id": "insert-pgvector",
       "name": "Insert to PGVector",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [
-        1340,
-        300
-      ],
+      "position": [1120, 300],
       "notes": "Insert chunks into Postgres PGVector table",
       "credentials": {
         "postgres": {
@@ -170,59 +123,16 @@
   ],
   "connections": {
     "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Set Document URL",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Set Parameters", "type": "main", "index": 0}]]
     },
-    "Set Document URL": {
-      "main": [
-        [
-          {
-            "node": "Chunk Document",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Set Parameters": {
+      "main": [[{"node": "Chunk Document", "type": "main", "index": 0}]]
     },
     "Chunk Document": {
-      "main": [
-        [
-          {
-            "node": "Extract Chunks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract Chunks": {
-      "main": [
-        [
-          {
-            "node": "Split Into Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Split Into Items", "type": "main", "index": 0}]]
     },
     "Split Into Items": {
-      "main": [
-        [
-          {
-            "node": "Insert to PGVector",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Insert to PGVector", "type": "main", "index": 0}]]
     }
   },
   "pinData": {},
@@ -230,7 +140,7 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "tags": [],
+  "tags": ["docling", "chunking", "pgvector", "rag"],
   "triggerCount": 0,
   "updatedAt": "2025-11-24T00:00:00.000Z",
   "versionId": "1"

@@ -1,146 +1,81 @@
 # n8n Integration for Docling API
 
-This guide shows you how to use the Docling document converter and chunking in your n8n workflows.
+This guide shows you how to use the Docling API for document chunking in your n8n workflows.
 
-## 🆕 NEW: Document Chunking for PGVector
+## 🎯 Complete Workflow
 
-The API now includes a `/chunk` endpoint that chunks documents using HybridChunker - perfect for RAG systems and vector databases!
+**File:** `n8n-docling-chunk-workflow.json`
 
-## 🚀 Quick Start
+This workflow provides everything you need: URL → Convert → Chunk → PGVector
 
-### Option 1: Simple Single Node (Recommended)
-
-**File:** `n8n-simple-docling-node.json`
-
-This is the easiest way to use Docling in n8n - just one HTTP Request node.
-
-#### How to Import:
-
-1. Open your n8n workflow
-2. Click the **"+"** button to add a node
-3. Click **"Import from File"** or paste JSON
-4. Select `n8n-simple-docling-node.json`
-5. The node will be added to your canvas
-
-#### How to Use:
-
-**Input Data Required:**
-```json
-{
-  "documentUrl": "https://arxiv.org/pdf/2408.09869",
-  "outputFormat": "markdown"
-}
-```
-
-Or use these alternative field names:
-```json
-{
-  "url": "https://example.com/document.pdf",
-  "format": "json"
-}
-```
-
-**Output Data:**
-```json
-{
-  "success": true,
-  "content": "# Document Title\n\nConverted content here...",
-  "metadata": {
-    "num_pages": 10,
-    "source": "https://arxiv.org/pdf/2408.09869",
-    "format": "markdown"
-  },
-  "error": null
-}
-```
-
----
-
-### Option 2: Complete Workflow
-
-**File:** `n8n-docling-workflow.json`
-
-This includes a complete workflow with:
-- Manual trigger
-- Input configuration
-- Document conversion
-- Output extraction
-
-#### How to Import:
+### How to Import:
 
 1. In n8n, go to **Workflows**
 2. Click **"Import from File"**
-3. Select `n8n-docling-workflow.json`
+3. Select `n8n-docling-chunk-workflow.json`
 4. The complete workflow will be imported
 
-#### How to Use:
+### Workflow Steps:
 
-1. Open the **"Set Document URL"** node
-2. Change the `documentUrl` value to your document URL
-3. Change the `outputFormat` if needed (markdown, json, or html)
-4. Click **"Execute Workflow"**
-5. View the output in the **"Extract Output"** node
+```
+1. Manual Trigger
+   ↓
+2. Set Parameters
+   - url: Document URL
+   - file_id: Your file ID from metadata table
+   - max_tokens: 512 (default)
+   - merge_peers: true (default)
+   ↓
+3. Chunk Document
+   POST /chunk
+   - Converts and chunks in one step
+   ↓
+4. Split Into Items
+   - Splits chunks array
+   ↓
+5. Insert to PGVector
+   - Inserts each chunk to database
+```
+
+### Input Parameters:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `url` | string | Yes | - | Document URL to process |
+| `file_id` | string | Yes | - | Your file ID for linking to metadata |
+| `max_tokens` | number | No | 512 | Maximum tokens per chunk |
+| `merge_peers` | boolean | No | true | Merge small adjacent chunks |
+
+### Output Format:
+
+Each chunk includes:
+```json
+{
+  "content": "chunk text...",
+  "chunk": 0,
+  "chunk_size": 1234,
+  "tokens": 450,
+  "metadata": {
+    "file_id": "your-file-id-here"
+  }
+}
+```
 
 ---
 
-## 🔥 Document Chunking Endpoint
+## 🎯 What This Workflow Does
 
-**File:** `n8n-chunk-node.json`
-
-### What is Document Chunking?
-
-Chunks documents intelligently for RAG systems and vector databases. Uses HybridChunker which:
-- Respects document structure (paragraphs, sections, tables)
-- Ensures chunks fit within token limits
-- Maintains semantic coherence
-- Preserves metadata and context
-
-### How to Use:
-
-**Input Data:**
-```json
-{
-  "url": "https://example.com/document.pdf",
-  "max_tokens": 512,
-  "merge_peers": true,
-  "file_id": "your-file-id-here"
-}
-```
-
-**Output Data (PGVector Compatible):**
-```json
-{
-  "success": true,
-  "chunks": [
-    {
-      "content": "chunk text content...",
-      "chunk": 0,
-      "chunk_size": 1234,
-      "tokens": 450,
-      "metadata": {
-        "file_id": "your-file-id-here"
-      }
-    }
-  ],
-  "total_chunks": 10,
-  "total_tokens": 4500
-}
-```
-
-### Complete Workflow: URL → Chunks → PGVector
-
-**File:** `n8n-chunk-to-pgvector-workflow.json`
-
-This workflow shows the complete process:
-1. Set document URL and file_id
-2. Call `/chunk` endpoint (converts and chunks in one step)
-3. Split chunks array into individual items
-4. Insert into Postgres PGVector table
+✅ **Converts** document from URL using Docling  
+✅ **Chunks** intelligently using HybridChunker  
+✅ **Respects** document structure (paragraphs, sections, tables)  
+✅ **Token-aware** - fits within embedding model limits  
+✅ **Includes** file_id for linking to your metadata table  
+✅ **PGVector ready** - direct insertion to database  
 
 **Perfect for:**
 - RAG (Retrieval Augmented Generation) systems
 - Semantic search
-- Document Q&A systems
+- Document Q&A chatbots
 - Knowledge bases
 
 ---
