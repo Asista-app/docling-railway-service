@@ -66,6 +66,12 @@ class ChunkRequest(BaseModel):
     merge_peers: bool = True
 
 
+class ChunkContentRequest(BaseModel):
+    content: str
+    max_tokens: int = 512
+    merge_peers: bool = True
+
+
 class ChunkObject(BaseModel):
     content: str
     chunk: int
@@ -93,6 +99,7 @@ async def root():
             "convert_url": "/convert/url",
             "convert_file": "/convert/file",
             "chunk": "/chunk",
+            "chunk_content": "/chunk/content",
             "health": "/health"
         }
     }
@@ -294,6 +301,98 @@ async def chunk_document(request: ChunkRequest):
         
     except Exception as e:
         logger.error(f"Error chunking document: {str(e)}")
+        return ChunkResponse(
+            success=False,
+            error=str(e)
+        )
+
+
+@app.post("/chunk/content", response_model=ChunkResponse)
+async def chunk_content(request: ChunkContentRequest):
+    """
+    Chunk text content directly using HybridChunker
+    
+    This endpoint is perfect for n8n workflows where you already have
+    the converted document content from the /convert/url endpoint.
+    
+    Args:
+        request: ChunkContentRequest containing content text and chunking parameters
+        
+    Returns:
+        ChunkResponse with array of chunks compatible with PGVector
+    """
+    try:
+        logger.info(f"Chunking content directly ({len(request.content)} characters)")
+        
+        # Import required for text chunking
+        from docling_core.types.doc import DoclingDocument, TextItem, DocItemLabel
+        from docling_core.types.doc.document import SectionHeaderItem
+        
+        # Create a simple DoclingDocument from the text content
+        # Split content into paragraphs for better chunking
+        paragraphs = request.content.split('\n\n')
+        
+        # Create a minimal DoclingDocument structure
+        doc = DoclingDocument(name="content")
+        
+        # Add paragraphs as text items
+        for para in paragraphs:
+            if para.strip():
+                text_item = TextItem(text=para.strip(), label=DocItemLabel.PARAGRAPH)
+                doc.add_item(text_item)
+        
+        # Get tokenizer (lazy loaded)
+        tokenizer = get_tokenizer()
+        
+        # Create HybridChunker
+        chunker = HybridChunker(
+            tokenizer=tokenizer,
+            max_tokens=request.max_tokens,
+            merge_peers=request.merge_peers
+        )
+        
+        # Generate chunks
+        chunk_iter = chunker.chunk(dl_doc=doc)
+        chunks_list = list(chunk_iter)
+        
+        # Format chunks for PGVector compatibility
+        formatted_chunks = []
+        total_tokens = 0
+        
+        for i, chunk in enumerate(chunks_list):
+            # Get chunk text
+            chunk_text = chunk.text
+            
+            # Calculate tokens
+            tokens = tokenizer.encode(chunk_text)
+            token_count = len(tokens)
+            total_tokens += token_count
+            
+            # Extract metadata if available
+            chunk_metadata = {}
+            if hasattr(chunk, 'meta') and chunk.meta:
+                chunk_metadata = chunk.meta.model_dump() if hasattr(chunk.meta, 'model_dump') else dict(chunk.meta)
+            
+            # Format matching PGVector structure
+            formatted_chunks.append(ChunkObject(
+                content=chunk_text,
+                chunk=i,
+                chunk_size=len(chunk_text),
+                tokens=token_count,
+                metadata=chunk_metadata
+            ))
+        
+        logger.info(f"Successfully chunked content into {len(formatted_chunks)} chunks")
+        
+        return ChunkResponse(
+            success=True,
+            chunks=formatted_chunks,
+            total_chunks=len(formatted_chunks),
+            total_tokens=total_tokens
+        )
+        
+    except Exception as e:
+        logger.error(f"Error chunking content: {str(e)}")
         return ChunkResponse(
             success=False,
             error=str(e)

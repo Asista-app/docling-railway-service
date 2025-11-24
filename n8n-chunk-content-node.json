@@ -1,0 +1,37 @@
+{
+  "name": "Docling Chunk Content - Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://asista-docling.up.railway.app/chunk/content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{ $json.content }}\",\n  \"max_tokens\": {{ $json.max_tokens || 512 }},\n  \"merge_peers\": {{ $json.merge_peers !== undefined ? $json.merge_peers : true }}\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "chunk-content-node",
+      "name": "Chunk Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "notes": "Chunks text content directly.\n\nInput:\n- content: text content from converter\n- max_tokens: max tokens per chunk (default: 512)\n- merge_peers: merge small chunks (default: true)\n\nOutput:\n- chunks: array of {content, chunk, chunk_size, tokens, metadata}\n- total_chunks: number\n- total_tokens: number\n\nPerfect for: Convert → Chunk → PGVector workflow"
+    }
+  ],
+  "connections": {},
+  "pinData": {}
+}
