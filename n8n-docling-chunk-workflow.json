@@ -60,7 +60,7 @@
         "specifyBody": "json",
         "jsonBody": "={\n  \"url\": {{ JSON.stringify($json.url) }},\n  \"max_tokens\": {{ $json.max_tokens }},\n  \"merge_peers\": {{ $json.merge_peers }},\n  \"file_id\": {{ JSON.stringify($json.file_id) }}\n}",
         "options": {
-          "timeout": 180000
+          "timeout": 600000
         }
       },
       "id": "chunk-document",
