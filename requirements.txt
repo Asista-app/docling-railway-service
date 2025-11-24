@@ -8,3 +8,8 @@ python-multipart>=0.0.9
 
 # Additional dependencies for production
 gunicorn>=23.0.0
+
+# Chunking dependencies
+transformers>=4.46.0
+torch>=2.0.0
+sentencepiece>=0.2.0

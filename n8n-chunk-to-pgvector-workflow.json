@@ -1,0 +1,237 @@
+{
+  "name": "Docling Chunk to PGVector Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "documentUrl",
+              "value": "https://arxiv.org/pdf/2408.09869"
+            },
+            {
+              "name": "max_tokens",
+              "value": "512"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "merge_peers",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-document",
+      "name": "Set Document URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://asista-docling.up.railway.app/chunk",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.documentUrl }}\",\n  \"max_tokens\": {{ $json.max_tokens }},\n  \"merge_peers\": {{ $json.merge_peers }}\n}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "chunk-document",
+      "name": "Chunk Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "chunks",
+              "name": "chunks",
+              "value": "={{ $json.chunks }}",
+              "type": "array"
+            },
+            {
+              "id": "total",
+              "name": "total_chunks",
+              "value": "={{ $json.total_chunks }}",
+              "type": "number"
+            },
+            {
+              "id": "tokens",
+              "name": "total_tokens",
+              "value": "={{ $json.total_tokens }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-chunks",
+      "name": "Extract Chunks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "chunks",
+        "options": {}
+      },
+      "id": "split-chunks",
+      "name": "Split Into Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "notes": "Split chunks array into individual items for PGVector insertion"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "documents_pg",
+          "mode": "list",
+          "cachedResultName": "documents_pg"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "content": "={{ $json.content }}",
+            "chunk": "={{ $json.chunk }}",
+            "chunk_size": "={{ $json.chunk_size }}",
+            "tokens": "={{ $json.tokens }}",
+            "metadata": "={{ JSON.stringify($json.metadata) }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "pgvector-insert",
+      "name": "Insert to PGVector",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1340,
+        300
+      ],
+      "notes": "Insert chunks into Postgres PGVector table",
+      "credentials": {
+        "postgres": {
+          "id": "your-postgres-credential-id",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Document URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Document URL": {
+      "main": [
+        [
+          {
+            "node": "Chunk Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Document": {
+      "main": [
+        [
+          {
+            "node": "Extract Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Chunks": {
+      "main": [
+        [
+          {
+            "node": "Split Into Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Items": {
+      "main": [
+        [
+          {
+            "node": "Insert to PGVector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-24T00:00:00.000Z",
+  "versionId": "1"
+}

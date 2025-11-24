@@ -1,0 +1,43 @@
+{
+  "name": "Docling Chunk - PGVector Ready",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://asista-docling.up.railway.app/chunk",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.documentUrl || $json.url }}\",\n  \"max_tokens\": {{ $json.max_tokens || $json.maxTokens || 512 }},\n  \"merge_peers\": {{ $json.merge_peers !== undefined ? $json.merge_peers : true }}\n}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "docling-chunk",
+      "name": "Docling Chunk Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "notes": "Chunks documents using Docling HybridChunker.\n\nInput fields:\n- documentUrl or url: URL of document to chunk\n- max_tokens or maxTokens: max tokens per chunk (default: 512)\n- merge_peers: merge small adjacent chunks (default: true)\n\nOutput (PGVector compatible):\n- success: boolean\n- chunks: array of {content, chunk, chunk_size, tokens, metadata}\n- total_chunks: number\n- total_tokens: number\n\nReady for Postgres PGVector Store!"
+    }
+  ],
+  "connections": {},
+  "pinData": {}
+}

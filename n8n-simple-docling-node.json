@@ -1,0 +1,43 @@
+{
+  "name": "Docling Converter - Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://asista-docling.up.railway.app/convert/url",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.documentUrl || $json.url }}\",\n  \"output_format\": \"{{ $json.outputFormat || $json.format || 'markdown' }}\"\n}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "docling-simple",
+      "name": "Docling Convert URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "notes": "Converts documents using Docling API.\n\nInput fields:\n- documentUrl or url: URL of document to convert\n- outputFormat or format: markdown, json, or html (default: markdown)\n\nOutput:\n- success: boolean\n- content: converted document content\n- metadata: document metadata\n- error: error message if failed"
+    }
+  ],
+  "connections": {},
+  "pinData": {}
+}

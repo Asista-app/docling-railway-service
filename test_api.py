@@ -5,8 +5,8 @@ import requests
 import json
 
 # Change this to your Railway URL after deployment
-BASE_URL = "http://localhost:8000"  # For local testing
-# BASE_URL = "https://your-app.railway.app"  # For production
+# BASE_URL = "http://localhost:8000"  # For local testing
+BASE_URL = "https://asista-docling.up.railway.app"  # Production
 
 def test_health():
     """Test health endpoint"""

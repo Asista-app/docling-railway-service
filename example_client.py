@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 # Update this with your Railway URL after deployment
-BASE_URL = "https://your-app.railway.app"
+BASE_URL = "https://asista-docling.up.railway.app"
 
 class DoclingClient:
     """Simple client for Docling API"""
