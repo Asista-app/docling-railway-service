@@ -330,54 +330,77 @@ async def chunk_content(request: ChunkContentRequest):
     try:
         logger.info(f"Chunking content directly ({len(request.content)} characters)")
         
-        # Import required for text chunking
-        from docling_core.types.doc import DoclingDocument, TextItem, DocItemLabel
-        from docling_core.types.doc.document import SectionHeaderItem
-        
-        # Create a simple DoclingDocument from the text content
-        # Split content into paragraphs for better chunking
-        paragraphs = request.content.split('\n\n')
-        
-        # Create a minimal DoclingDocument structure
-        doc = DoclingDocument(name="content")
-        
-        # Add paragraphs as text items
-        for para in paragraphs:
-            if para.strip():
-                text_item = TextItem(text=para.strip(), label=DocItemLabel.PARAGRAPH)
-                doc.add_item(text_item)
-        
         # Get tokenizer (lazy loaded)
         tokenizer = get_tokenizer()
         
-        # Create HybridChunker
-        chunker = HybridChunker(
-            tokenizer=tokenizer,
-            max_tokens=request.max_tokens,
-            merge_peers=request.merge_peers
-        )
+        # Simple text-based chunking without complex document structure
+        # Split content into paragraphs
+        paragraphs = request.content.split('\n\n')
         
-        # Generate chunks
-        chunk_iter = chunker.chunk(dl_doc=doc)
-        chunks_list = list(chunk_iter)
+        # Chunk the text based on token limits
+        chunks_list = []
+        current_chunk = []
+        current_tokens = 0
+        
+        for para in paragraphs:
+            if not para.strip():
+                continue
+            
+            # Calculate tokens for this paragraph
+            para_tokens = tokenizer.encode(para.strip())
+            para_token_count = len(para_tokens)
+            
+            # If adding this paragraph exceeds max_tokens, save current chunk
+            if current_tokens + para_token_count > request.max_tokens and current_chunk:
+                chunks_list.append({
+                    'text': '\n\n'.join(current_chunk),
+                    'tokens': current_tokens
+                })
+                current_chunk = []
+                current_tokens = 0
+            
+            # If single paragraph exceeds max_tokens, split it by sentences
+            if para_token_count > request.max_tokens:
+                sentences = para.split('. ')
+                for sentence in sentences:
+                    if not sentence.strip():
+                        continue
+                    sent_tokens = tokenizer.encode(sentence.strip())
+                    sent_token_count = len(sent_tokens)
+                    
+                    if current_tokens + sent_token_count > request.max_tokens and current_chunk:
+                        chunks_list.append({
+                            'text': '\n\n'.join(current_chunk),
+                            'tokens': current_tokens
+                        })
+                        current_chunk = []
+                        current_tokens = 0
+                    
+                    current_chunk.append(sentence.strip())
+                    current_tokens += sent_token_count
+            else:
+                current_chunk.append(para.strip())
+                current_tokens += para_token_count
+        
+        # Add remaining content as final chunk
+        if current_chunk:
+            chunks_list.append({
+                'text': '\n\n'.join(current_chunk),
+                'tokens': current_tokens
+            })
         
         # Format chunks for PGVector compatibility
         formatted_chunks = []
         total_tokens = 0
         
         for i, chunk in enumerate(chunks_list):
-            # Get chunk text
-            chunk_text = chunk.text
-            
-            # Calculate tokens
-            tokens = tokenizer.encode(chunk_text)
-            token_count = len(tokens)
+            # Get chunk text and tokens
+            chunk_text = chunk['text']
+            token_count = chunk['tokens']
             total_tokens += token_count
             
-            # Extract metadata if available
+            # Create metadata
             chunk_metadata = {}
-            if hasattr(chunk, 'meta') and chunk.meta:
-                chunk_metadata = chunk.meta.model_dump() if hasattr(chunk.meta, 'model_dump') else dict(chunk.meta)
             
             # Add file_id to metadata if provided
             if request.file_id:
