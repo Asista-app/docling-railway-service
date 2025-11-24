@@ -270,12 +270,8 @@ async def chunk_document(request: ChunkRequest):
             token_count = len(tokens)
             total_tokens += token_count
             
-            # Extract metadata if available
+            # Create clean metadata with only file_id
             chunk_metadata = {}
-            if hasattr(chunk, 'meta') and chunk.meta:
-                chunk_metadata = chunk.meta.model_dump() if hasattr(chunk.meta, 'model_dump') else dict(chunk.meta)
-            
-            # Add file_id to metadata if provided
             if request.file_id:
                 chunk_metadata['file_id'] = request.file_id
             
