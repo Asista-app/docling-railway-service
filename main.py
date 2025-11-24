@@ -67,13 +67,6 @@ class ChunkRequest(BaseModel):
     file_id: Optional[str] = None
 
 
-class ChunkContentRequest(BaseModel):
-    content: str
-    max_tokens: int = 512
-    merge_peers: bool = True
-    file_id: Optional[str] = None
-
-
 class ChunkObject(BaseModel):
     content: str
     chunk: int
@@ -101,7 +94,6 @@ async def root():
             "convert_url": "/convert/url",
             "convert_file": "/convert/file",
             "chunk": "/chunk",
-            "chunk_content": "/chunk/content",
             "health": "/health"
         }
     }
@@ -307,125 +299,6 @@ async def chunk_document(request: ChunkRequest):
         
     except Exception as e:
         logger.error(f"Error chunking document: {str(e)}")
-        return ChunkResponse(
-            success=False,
-            error=str(e)
-        )
-
-
-@app.post("/chunk/content", response_model=ChunkResponse)
-async def chunk_content(request: ChunkContentRequest):
-    """
-    Chunk text content directly using HybridChunker
-    
-    This endpoint is perfect for n8n workflows where you already have
-    the converted document content from the /convert/url endpoint.
-    
-    Args:
-        request: ChunkContentRequest containing content text and chunking parameters
-        
-    Returns:
-        ChunkResponse with array of chunks compatible with PGVector
-    """
-    try:
-        logger.info(f"Chunking content directly ({len(request.content)} characters)")
-        
-        # Get tokenizer (lazy loaded)
-        tokenizer = get_tokenizer()
-        
-        # Simple text-based chunking without complex document structure
-        # Split content into paragraphs
-        paragraphs = request.content.split('\n\n')
-        
-        # Chunk the text based on token limits
-        chunks_list = []
-        current_chunk = []
-        current_tokens = 0
-        
-        for para in paragraphs:
-            if not para.strip():
-                continue
-            
-            # Calculate tokens for this paragraph
-            para_tokens = tokenizer.encode(para.strip())
-            para_token_count = len(para_tokens)
-            
-            # If adding this paragraph exceeds max_tokens, save current chunk
-            if current_tokens + para_token_count > request.max_tokens and current_chunk:
-                chunks_list.append({
-                    'text': '\n\n'.join(current_chunk),
-                    'tokens': current_tokens
-                })
-                current_chunk = []
-                current_tokens = 0
-            
-            # If single paragraph exceeds max_tokens, split it by sentences
-            if para_token_count > request.max_tokens:
-                sentences = para.split('. ')
-                for sentence in sentences:
-                    if not sentence.strip():
-                        continue
-                    sent_tokens = tokenizer.encode(sentence.strip())
-                    sent_token_count = len(sent_tokens)
-                    
-                    if current_tokens + sent_token_count > request.max_tokens and current_chunk:
-                        chunks_list.append({
-                            'text': '\n\n'.join(current_chunk),
-                            'tokens': current_tokens
-                        })
-                        current_chunk = []
-                        current_tokens = 0
-                    
-                    current_chunk.append(sentence.strip())
-                    current_tokens += sent_token_count
-            else:
-                current_chunk.append(para.strip())
-                current_tokens += para_token_count
-        
-        # Add remaining content as final chunk
-        if current_chunk:
-            chunks_list.append({
-                'text': '\n\n'.join(current_chunk),
-                'tokens': current_tokens
-            })
-        
-        # Format chunks for PGVector compatibility
-        formatted_chunks = []
-        total_tokens = 0
-        
-        for i, chunk in enumerate(chunks_list):
-            # Get chunk text and tokens
-            chunk_text = chunk['text']
-            token_count = chunk['tokens']
-            total_tokens += token_count
-            
-            # Create metadata
-            chunk_metadata = {}
-            
-            # Add file_id to metadata if provided
-            if request.file_id:
-                chunk_metadata['file_id'] = request.file_id
-            
-            # Format matching PGVector structure
-            formatted_chunks.append(ChunkObject(
-                content=chunk_text,
-                chunk=i,
-                chunk_size=len(chunk_text),
-                tokens=token_count,
-                metadata=chunk_metadata
-            ))
-        
-        logger.info(f"Successfully chunked content into {len(formatted_chunks)} chunks")
-        
-        return ChunkResponse(
-            success=True,
-            chunks=formatted_chunks,
-            total_chunks=len(formatted_chunks),
-            total_tokens=total_tokens
-        )
-        
-    except Exception as e:
-        logger.error(f"Error chunking content: {str(e)}")
         return ChunkResponse(
             success=False,
             error=str(e)

@@ -100,9 +100,10 @@ Chunks documents intelligently for RAG systems and vector databases. Uses Hybrid
 **Input Data:**
 ```json
 {
-  "documentUrl": "https://example.com/document.pdf",
+  "url": "https://example.com/document.pdf",
   "max_tokens": 512,
-  "merge_peers": true
+  "merge_peers": true,
+  "file_id": "your-file-id-here"
 }
 ```
 
@@ -117,8 +118,7 @@ Chunks documents intelligently for RAG systems and vector databases. Uses Hybrid
       "chunk_size": 1234,
       "tokens": 450,
       "metadata": {
-        "doc_items": [...],
-        "headings": [...]
+        "file_id": "your-file-id-here"
       }
     }
   ],
@@ -127,16 +127,15 @@ Chunks documents intelligently for RAG systems and vector databases. Uses Hybrid
 }
 ```
 
-### Complete Workflow: Chunk to PGVector
+### Complete Workflow: URL → Chunks → PGVector
 
 **File:** `n8n-chunk-to-pgvector-workflow.json`
 
 This workflow shows the complete process:
-1. Set document URL
-2. Call chunk endpoint
-3. Extract chunks array
-4. Split into individual items
-5. Insert into Postgres PGVector table
+1. Set document URL and file_id
+2. Call `/chunk` endpoint (converts and chunks in one step)
+3. Split chunks array into individual items
+4. Insert into Postgres PGVector table
 
 **Perfect for:**
 - RAG (Retrieval Augmented Generation) systems
