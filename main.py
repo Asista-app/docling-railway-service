@@ -64,12 +64,14 @@ class ChunkRequest(BaseModel):
     url: HttpUrl
     max_tokens: int = 512
     merge_peers: bool = True
+    file_id: Optional[str] = None
 
 
 class ChunkContentRequest(BaseModel):
     content: str
     max_tokens: int = 512
     merge_peers: bool = True
+    file_id: Optional[str] = None
 
 
 class ChunkObject(BaseModel):
@@ -281,6 +283,10 @@ async def chunk_document(request: ChunkRequest):
             if hasattr(chunk, 'meta') and chunk.meta:
                 chunk_metadata = chunk.meta.model_dump() if hasattr(chunk.meta, 'model_dump') else dict(chunk.meta)
             
+            # Add file_id to metadata if provided
+            if request.file_id:
+                chunk_metadata['file_id'] = request.file_id
+            
             # Format matching your PGVector structure
             formatted_chunks.append(ChunkObject(
                 content=chunk_text,
@@ -372,6 +378,10 @@ async def chunk_content(request: ChunkContentRequest):
             chunk_metadata = {}
             if hasattr(chunk, 'meta') and chunk.meta:
                 chunk_metadata = chunk.meta.model_dump() if hasattr(chunk.meta, 'model_dump') else dict(chunk.meta)
+            
+            # Add file_id to metadata if provided
+            if request.file_id:
+                chunk_metadata['file_id'] = request.file_id
             
             # Format matching PGVector structure
             formatted_chunks.append(ChunkObject(

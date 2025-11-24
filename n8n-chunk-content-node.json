@@ -16,7 +16,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": \"{{ $json.content }}\",\n  \"max_tokens\": {{ $json.max_tokens || 512 }},\n  \"merge_peers\": {{ $json.merge_peers !== undefined ? $json.merge_peers : true }}\n}",
+        "jsonBody": "={\n  \"content\": \"{{ $json.content }}\",\n  \"max_tokens\": {{ $json.max_tokens || 512 }},\n  \"merge_peers\": {{ $json.merge_peers !== undefined ? $json.merge_peers : true }},\n  \"file_id\": \"{{ $json.file_id || '' }}\"\n}",
         "options": {
           "timeout": 120000
         }
