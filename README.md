@@ -1,6 +1,6 @@
 # Docling Web Service for Railway
 
-A FastAPI-based web service that wraps the [Docling](https://github.com/docling-project/docling) library for document conversion, deployed on Railway.
+A FastAPI-based web service that wraps the [Docling](https://github.com/docling-project/docling) library (v2.67.0) for document conversion, deployed on Railway.
 
 ## 🚀 Features
 
@@ -219,6 +219,7 @@ Recommended Railway plan:
 
 - [Docling Documentation](https://docling-project.github.io/docling/)
 - [Docling GitHub](https://github.com/docling-project/docling)
+- [Docling Changelog](https://github.com/docling-project/docling/blob/main/CHANGELOG.md)
 - [Railway Documentation](https://docs.railway.app/)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 

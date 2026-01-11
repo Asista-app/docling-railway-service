@@ -1,5 +1,5 @@
 # Core Docling library
-docling>=2.63.0
+docling>=2.67.0
 
 # FastAPI and web server
 fastapi>=0.115.0

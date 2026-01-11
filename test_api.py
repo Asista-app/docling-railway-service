@@ -70,6 +70,54 @@ def test_convert_file():
         print("Skipping file upload test (test.pdf not found)\n")
         return True
 
+def test_chunking():
+    """Test document chunking with HybridChunker"""
+    print("Testing document chunking...")
+    
+    # Google Drive document for testing
+    test_url = "https://drive.google.com/uc?export=download&id=1-uvOaGNCSJOKcCuKkHD4pez4dMqazwzL"
+    
+    payload = {
+        "url": test_url,
+        "max_tokens": 512,
+        "merge_peers": True,
+        "file_id": "test-doc-001"
+    }
+    
+    print(f"Document URL: {test_url}")
+    print(f"Max tokens per chunk: {payload['max_tokens']}")
+    print(f"Merge peers: {payload['merge_peers']}")
+    
+    response = requests.post(f"{BASE_URL}/chunk", json=payload)
+    print(f"Status: {response.status_code}")
+    result = response.json()
+    
+    if result.get("success"):
+        print(f"✓ Success! Document chunked")
+        print(f"  Total chunks: {result.get('total_chunks', 0)}")
+        print(f"  Total tokens: {result.get('total_tokens', 0)}")
+        
+        if result.get('total_chunks', 0) > 0:
+            avg_tokens = result['total_tokens'] / result['total_chunks']
+            print(f"  Avg tokens/chunk: {avg_tokens:.1f}")
+            
+            # Show first chunk details
+            first_chunk = result['chunks'][0]
+            print(f"\n  First chunk details:")
+            print(f"    Chunk index: {first_chunk['chunk']}")
+            print(f"    Chunk size: {first_chunk['chunk_size']} chars")
+            print(f"    Tokens: {first_chunk['tokens']}")
+            print(f"    Content preview: {first_chunk['content'][:150]}...")
+            
+            if first_chunk.get('metadata'):
+                print(f"    Metadata: {first_chunk['metadata']}")
+        
+        print()
+        return response.status_code == 200
+    else:
+        print(f"✗ Error: {result.get('error')}\n")
+        return False
+
 if __name__ == "__main__":
     print("=" * 50)
     print("Docling API Test Suite")
@@ -80,6 +128,7 @@ if __name__ == "__main__":
         ("Root Endpoint", test_root),
         ("URL Conversion", test_convert_url),
         ("File Upload", test_convert_file),
+        ("Document Chunking", test_chunking),
     ]
     
     results = []

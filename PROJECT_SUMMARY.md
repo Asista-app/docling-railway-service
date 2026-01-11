@@ -107,7 +107,7 @@ Auto-generated API documentation
 - **Docling**: Document conversion library
 
 ### Dependencies
-- `docling>=2.63.0` - Core document processing
+- `docling>=2.67.0` - Core document processing (updated Jan 2026)
 - `fastapi>=0.115.0` - Web framework
 - `uvicorn[standard]>=0.32.0` - ASGI server
 - `python-multipart>=0.0.9` - File upload support
